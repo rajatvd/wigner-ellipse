@@ -16,7 +16,9 @@
 # %%
 import numpy as np
 import matplotlib.pyplot as plt
+from gifify import gifify
 import matplotlib
+from IPython.display import Image
 
 # use sixel backend
 # matplotlib.use("module://matplotlib-backend-sixel")
@@ -73,18 +75,19 @@ def sample_matrix(N=50, num_samples=1000, tau=0.5):
     J = alpha * A + beta * At
 
     # resample the diagonal elements
-    J[np.diag_indices(N)] = np.random.randn(N, num_samples) / np.sqrt(N)
+    # J[np.diag_indices(N)] = np.random.randn(N, num_samples) / np.sqrt(N)
+    J[np.diag_indices(N)] = 0
 
     # compute empirical statistics
     Jt = np.transpose(J, (1, 0, 2))
     means = np.mean(J, axis=2)
     stds = np.mean(J * J, axis=2)
     corrs = np.mean(J * Jt, axis=2)
-    expected = (tau + np.eye(N) * (1 - tau)) / N
+    expected = (tau + np.eye(N) * (-tau)) / N
 
     tol = 10 * np.sqrt(1 / num_samples)
     mean_diff = np.max(np.abs(means))
-    std_diff = np.max(np.abs(stds - 1.0 / N))
+    std_diff = np.max(np.abs(stds - 1.0 / N * (1 - np.eye(N))))
     corr_diff = np.max(np.abs(corrs - expected))
 
     print(
@@ -136,7 +139,7 @@ plt.show()
 # %% [markdown]
 # # Compute spectrum and histogram on complex plane
 # %%
-def histogram_spectrum(J, bins=100, extent=5.0):
+def spectrum(J):
     """
     Compute the spectrum of the NxN matrix J.
 
@@ -144,12 +147,18 @@ def histogram_spectrum(J, bins=100, extent=5.0):
         spectrum: np.ndarray of shape (N, num_samples)
     """
     # compute the eigenvalues
-    N = J.shape[0]
     spectrum = np.linalg.eigvals(J.transpose(2, 0, 1))
+    return spectrum
+
+
+# %%
+def plot_spectrum(spectrum, bins=100, tau=0.0, extent=2.0):
     real = np.real(spectrum).reshape(-1)
     imag = np.imag(spectrum).reshape(-1)
 
-    H, xedges, yedges = np.histogram2d(real, imag, bins=bins, density=True)
+    edges = np.linspace(-extent, extent, bins, endpoint=True)
+
+    H, xedges, yedges = np.histogram2d(real, imag, bins=edges, density=True)
 
     x = xedges[:-1] + 0.5 * (xedges[1] - xedges[0])
     y = yedges[:-1] + 0.5 * (yedges[1] - yedges[0])
@@ -157,22 +166,43 @@ def histogram_spectrum(J, bins=100, extent=5.0):
     xx, yy = np.meshgrid(x, y)
 
     # contour plot of the histogram
-    plt.figure()
-    plt.contourf(xx, yy, H.T, levels=bins, cmap="viridis")
+    plt.contourf(xx, yy, H.T, levels=100, cmap="viridis")
     plt.xlabel("real")
     plt.ylabel("imag")
-    plt.title(f"Spectrum of J, tau={tau}, N={N}")
-    plt.xlim(extent, -extent)
-    plt.ylim(extent, -extent)
+    plt.title(f"Spectrum of J, tau={tau:.2f}, N={N}")
     plt.colorbar()
-    plt.show()
 
-    return spectrum
+    return H, xedges, yedges
 
 
 # %%
 # sample matrix
-J, _, _, _, _ = sample_matrix(N=100, num_samples=100, tau=0.0)
-
+tau = 0.5
+N = 300
+num_samples = 10
+J = sample_matrix(N=N, num_samples=num_samples, tau=tau)[0]
+# %%
 # compute spectrum
-spectrum = histogram_spectrum(J, extent=1.2)
+spec = spectrum(J)
+# %%
+# plot spectrum
+bins = 200
+plt.figure()
+H, xedges, yedges = plot_spectrum(spec, bins=bins, tau=tau, extent=2.0)
+plt.show()
+
+# %% [markdown]
+# # Vary $\tau$
+# %%
+taus = np.linspace(-0.9, 0.9, 50)
+for tau in gifify(taus, filename="spectrum.gif"):
+    print(f"Checking tau={tau}")
+    J = sample_matrix(N=N, num_samples=num_samples, tau=tau)[0]
+    spec = spectrum(J)
+    H, xedges, yedges = plot_spectrum(spec, bins=bins, tau=tau, extent=2.0)
+
+# %%
+# show the gif
+Image(filename="spectrum.gif")
+
+# %%
