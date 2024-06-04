@@ -16,6 +16,10 @@
 # %%
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib
+
+# use sixel backend
+# matplotlib.use("module://matplotlib-backend-sixel")
 
 # make default font size larger
 plt.rcParams.update({"font.size": 32})
@@ -30,9 +34,18 @@ plt.rcParams.update({"figure.figsize": (10, 8)})
 
 # make default markers larger
 plt.rcParams.update({"lines.markersize": 20})
+
+# %% [markdown]
+# # Sample NxN matrix $J$ with stats:
+# $\mathbb{E}[J] = 0$
+#
+# $\mathbb{E}[J_{ij}^2] = 1/N$
+#
+# $\mathbb{E}[J_{ij}J_{ji}] = \tau / N, \forall i \neq j$
+#
+
+
 # %%
-
-
 def sample_matrix(N=50, num_samples=1000, tau=0.5):
     """
     Generate num_samples number of random NxN asymmetric matrix.
@@ -49,7 +62,7 @@ def sample_matrix(N=50, num_samples=1000, tau=0.5):
         tol: tolerance for the differencek
     """
     # generate a random matrix
-    A = np.random.randn(N, N, num_samples)
+    A = np.random.randn(N, N, num_samples) / np.sqrt(N)
     At = np.transpose(A, (1, 0, 2))
 
     # some quick maffs to get the desired correlation
@@ -60,18 +73,18 @@ def sample_matrix(N=50, num_samples=1000, tau=0.5):
     J = alpha * A + beta * At
 
     # resample the diagonal elements
-    J[np.diag_indices(N)] = np.random.randn(N, num_samples)
+    J[np.diag_indices(N)] = np.random.randn(N, num_samples) / np.sqrt(N)
 
     # compute empirical statistics
     Jt = np.transpose(J, (1, 0, 2))
     means = np.mean(J, axis=2)
     stds = np.mean(J * J, axis=2)
     corrs = np.mean(J * Jt, axis=2)
-    expected = tau + np.eye(N) * (1 - tau)
+    expected = (tau + np.eye(N) * (1 - tau)) / N
 
     tol = 10 * np.sqrt(1 / num_samples)
     mean_diff = np.max(np.abs(means))
-    std_diff = np.max(np.abs(stds - 1))
+    std_diff = np.max(np.abs(stds - 1.0 / N))
     corr_diff = np.max(np.abs(corrs - expected))
 
     print(
@@ -118,4 +131,47 @@ plt.title(f"N={N}, tau={tau}")
 # plot legend outside of the plot
 plt.legend(loc="center left", bbox_to_anchor=(1, 0.5))
 plt.show()
+
+
+# %% [markdown]
+# # Compute spectrum and histogram on complex plane
 # %%
+def histogram_spectrum(J, bins=100, extent=5.0):
+    """
+    Compute the spectrum of the NxN matrix J.
+
+    Returns:
+        spectrum: np.ndarray of shape (N, num_samples)
+    """
+    # compute the eigenvalues
+    spectrum = np.linalg.eigvals(J.transpose(2, 0, 1))
+    real = np.real(spectrum).reshape(-1)
+    imag = np.imag(spectrum).reshape(-1)
+
+    H, xedges, yedges = np.histogram2d(real, imag, bins=bins, density=True)
+
+    x = xedges[:-1] + 0.5 * (xedges[1] - xedges[0])
+    y = yedges[:-1] + 0.5 * (yedges[1] - yedges[0])
+
+    xx, yy = np.meshgrid(x, y)
+
+    # contour plot of the histogram
+    plt.figure()
+    plt.contourf(xx, yy, H.T, levels=bins, cmap="viridis")
+    plt.xlabel("real")
+    plt.ylabel("imag")
+    plt.title("Spectrum of J")
+    plt.xlim(extent, -extent)
+    plt.ylim(extent, -extent)
+    plt.colorbar()
+    plt.show()
+
+    return spectrum
+
+
+# %%
+# sample matrix
+J, _, _, _, _ = sample_matrix(N=100, num_samples=100, tau=0.0)
+
+# compute spectrum
+spectrum = histogram_spectrum(J, extent=2.0)
