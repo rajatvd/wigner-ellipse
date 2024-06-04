@@ -144,6 +144,7 @@ def histogram_spectrum(J, bins=100, extent=5.0):
         spectrum: np.ndarray of shape (N, num_samples)
     """
     # compute the eigenvalues
+    N = J.shape[0]
     spectrum = np.linalg.eigvals(J.transpose(2, 0, 1))
     real = np.real(spectrum).reshape(-1)
     imag = np.imag(spectrum).reshape(-1)
@@ -160,7 +161,7 @@ def histogram_spectrum(J, bins=100, extent=5.0):
     plt.contourf(xx, yy, H.T, levels=bins, cmap="viridis")
     plt.xlabel("real")
     plt.ylabel("imag")
-    plt.title("Spectrum of J")
+    plt.title(f"Spectrum of J, tau={tau}, N={N}")
     plt.xlim(extent, -extent)
     plt.ylim(extent, -extent)
     plt.colorbar()
@@ -174,4 +175,4 @@ def histogram_spectrum(J, bins=100, extent=5.0):
 J, _, _, _, _ = sample_matrix(N=100, num_samples=100, tau=0.0)
 
 # compute spectrum
-spectrum = histogram_spectrum(J, extent=2.0)
+spectrum = histogram_spectrum(J, extent=1.2)
