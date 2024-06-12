@@ -244,11 +244,56 @@ plt.savefig(f"{fig_dir}/{extension}/spectra_num_samples={num_samples}.{extension
 plt.show()
 # %%
 # save the spectra to disk
-os.makedirs("specs", exist_ok=True)
 for tau in taus:
     for N in Ns:
         spec = specs[(tau, N)]
         np.save(f"specs/spec_tau={tau}_N={N}_num_samples={num_samples}.npy", spec)
+
+# %%
+# Plot fraction of real eigenvalues
+fractions = {}
+for tau in taus:
+    if tau == 1.0:
+        continue
+    for N in Ns:
+        spec = specs[(tau, N)]
+        imag = np.imag(spec).reshape(-1)
+        fractions[(tau, N)] = np.sum(np.abs(imag) < 1e-5) / len(imag)
+
+plt.loglog()
+for tau in taus:
+    if tau == 1.0:
+        continue
+    plt.plot(Ns, [fractions[(tau, N)] for N in Ns], "o-", label=f"tau={tau}")
+plt.xlabel("N")
+plt.ylabel("Fraction of real eigenvalues")
+# legend outside of the plot
+# make x and y ticks more frequent
+yt = np.logspace(-2, -0.5, 6).round(2)
+plt.xticks(Ns)
+plt.yticks(yt)
+# and also add xaxis labels for all Ns
+plt.gca().set_xticklabels(Ns)
+plt.gca().set_yticklabels(yt)
+plt.grid()
+
+# add regression slopes
+for tau in taus:
+    if tau == 1.0:
+        continue
+    x = np.log(Ns)
+    y = np.log([fractions[(tau, N)] for N in Ns])
+    m, c = np.polyfit(x, y, 1)
+    plt.plot(Ns, np.exp(m * x + c), "--", label=f"tau={tau}, slope={m:.2f}")
+leg = plt.legend(loc="center left", bbox_to_anchor=(1, 0.5))
+plt.savefig(
+    f"{fig_dir}/{extension}/fraction_real_eigenvalues.{extension}",
+    bbox_inches="tight",
+    bbox_extra_artists=(leg,),
+)
+
+plt.show()
+
 
 # %% [markdown]
 # # Vary $\tau$
