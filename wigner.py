@@ -202,7 +202,7 @@ bins = 200
 plt.figure()
 H, xedges, yedges = plot_spectrum(spec, bins=bins, tau=tau, extent=2.0)
 plt.tight_layout()
-plt.savefig(f"spectrum_tau={tau}_N={N}.png")
+# plt.savefig(f"spectrum_tau={tau}_N={N}.png")
 plt.show()
 
 # %%
@@ -242,6 +242,13 @@ for n, N in enumerate(Ns):
 plt.tight_layout()
 plt.savefig(f"{fig_dir}/{extension}/spectra_num_samples={num_samples}.{extension}")
 plt.show()
+# %%
+# save the spectra to disk
+os.makedirs("specs", exist_ok=True)
+for tau in taus:
+    for N in Ns:
+        spec = specs[(tau, N)]
+        np.save(f"specs/spec_tau={tau}_N={N}_num_samples={num_samples}.npy", spec)
 
 # %% [markdown]
 # # Vary $\tau$
