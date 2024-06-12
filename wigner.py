@@ -206,7 +206,7 @@ plt.savefig(f"spectrum_tau={tau}_N={N}.png")
 plt.show()
 
 # %%
-Ns = [50, 300, 600]
+Ns = [50, 100, 200, 400, 800]
 taus = [0.0, 0.5, 0.9, 1.0]
 
 specs = {}
@@ -220,7 +220,7 @@ for tau in taus:
 fig_dir = "/Users/rajat/Dropbox/Apps/Overleaf/AP229 Final Project/figs/"
 extension = "eps"
 os.makedirs(f"{fig_dir}/{extension}", exist_ok=True)
-plt.subplots(len(Ns), len(taus), figsize=(30, 24))
+plt.subplots(len(Ns), len(taus), figsize=(len(taus) * 5 + 2, len(Ns) * 5))
 for n, N in enumerate(Ns):
     for i, tau in enumerate(taus):
         plt.subplot(len(Ns), len(taus), n * len(taus) + i + 1)
